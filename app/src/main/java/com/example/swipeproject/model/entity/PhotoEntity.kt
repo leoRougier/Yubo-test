@@ -1,8 +1,9 @@
 package com.example.swipeproject.model.entity
 
 import androidx.room.Entity
-import androidx.room.PrimaryKey
 import androidx.room.ForeignKey
+import androidx.room.PrimaryKey
+import com.example.swipeproject.model.UserResponse
 
 
 @Entity(
@@ -21,3 +22,13 @@ data class PhotoEntity(
     val type: String,
     val url: String
 )
+
+fun UserResponse.toPhotoEntities(): List<PhotoEntity> {
+    return this.photos.map { photo ->
+        PhotoEntity(
+            userId = this.uid,
+            type = photo.type,
+            url = photo.url
+        )
+    }
+}

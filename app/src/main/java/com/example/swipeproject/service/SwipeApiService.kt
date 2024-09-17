@@ -7,7 +7,7 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 
-interface SwipeApi {
+interface SwipeApiService {
     @GET("list")
     suspend fun getUsers(): Response<UserDataResponse>
 
