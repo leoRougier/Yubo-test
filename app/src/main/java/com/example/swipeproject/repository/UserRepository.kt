@@ -11,4 +11,6 @@ interface UserRepository {
     suspend fun dislikeUser(uid: String): ResultStatus
     suspend fun fetchUsers(): List<UserResponse>?
     fun getPagedUsers(): Flow<PagingData<CompleteUserProfile>>
+    suspend fun saveUserToDatabase(user: UserResponse)
+    suspend fun removeUser(uid: String?)
 }

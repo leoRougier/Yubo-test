@@ -62,7 +62,8 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.paging)
     implementation(libs.kotlinx.serialization)
-    
+    implementation(libs.paging.compose)
+
     //ROOM
     implementation(libs.room.runtime)
     ksp(libs.room.compiler)

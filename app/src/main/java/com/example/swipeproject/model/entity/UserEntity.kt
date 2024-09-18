@@ -1,3 +1,4 @@
+// UserEntity.kt
 package com.example.swipeproject.model.entity
 
 import androidx.room.Entity
@@ -6,15 +7,18 @@ import com.example.swipeproject.model.UserResponse
 
 @Entity(tableName = "users")
 data class UserEntity(
-    @PrimaryKey val uid: String,
+    @PrimaryKey
+    val uid: String,
     val name: String,
     val birth: String,
     val age: Int,
     val gender: String,
     val location: String,
     val town: String,
-    val emojis: List<String>
+    val emojis: List<String>,
+    val batchNumber: Int = 0
 )
+
 
 fun UserResponse.toUserEntity(): UserEntity {
     return UserEntity(

@@ -20,10 +20,13 @@ class SwipeViewModel @Inject constructor(private val userRepository: UserReposit
     val usersStateFlow: StateFlow<PagingData<CompleteUserProfile>> = _usersStateFlow
 
     init {
-        viewModelScope.launch {
-            userRepository.fetchUsers()
-        }
         fetchPagedUsers()
+    }
+
+    fun removeUser(uid: String?) {
+        viewModelScope.launch {
+            userRepository.removeUser(uid)
+        }
     }
 
 

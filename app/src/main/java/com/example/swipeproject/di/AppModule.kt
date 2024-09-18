@@ -1,6 +1,7 @@
 package com.example.swipeproject.di
 
 import com.example.swipeproject.repository.UserRemoteMediator
+import com.example.swipeproject.repository.UserRepository
 import com.example.swipeproject.service.SwipeApiService
 import com.example.swipeproject.storage.database.dao.UserDao
 import dagger.Module
@@ -13,12 +14,4 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object  AppModule {
 
-    @Provides
-    @Singleton
-    fun provideUserRemoteMediator(
-        apiService: SwipeApiService,
-        userDao: UserDao
-    ): UserRemoteMediator {
-        return UserRemoteMediator(apiService, userDao)
-    }
 }

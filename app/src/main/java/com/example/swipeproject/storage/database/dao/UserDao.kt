@@ -37,6 +37,9 @@ interface UserDao {
     @Query("DELETE FROM users WHERE uid IN (:userIds)")
     suspend fun deleteUsersById(userIds: List<String>)
 
+    @Query("DELETE FROM users WHERE uid = :uid")
+    suspend fun deleteUserByUid(uid: String)
+
     @Query("DELETE FROM photos WHERE userId IN (:userIds)")
     suspend fun deletePhotosByUserIds(userIds: List<String>)
 }

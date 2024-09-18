@@ -20,8 +20,7 @@ import javax.inject.Singleton
 @Singleton
 class UserRepositoryImpl @Inject constructor(
     private val apiService: SwipeApiService,
-    private val userDao: UserDao,
-    private val userRemoteMediator: UserRemoteMediator
+    private val userDao: UserDao
 ) : UserRepository {
 
     override suspend fun likeUser(uid: String): ResultStatus {
@@ -56,7 +55,7 @@ class UserRepositoryImpl @Inject constructor(
         }
     }
 
-    private suspend fun saveUserToDatabase(user: UserResponse) {
+    override suspend fun saveUserToDatabase(user: UserResponse) {
         val userEntity = user.toUserEntity()
         val photoEntities = user.toPhotoEntities()
 
@@ -70,12 +69,18 @@ class UserRepositoryImpl @Inject constructor(
     override fun getPagedUsers(): Flow<PagingData<CompleteUserProfile>> {
         return Pager(
             config = PagingConfig(
-                pageSize = 1,
+                pageSize = 20,
                 enablePlaceholders = false,
-                prefetchDistance = 5
+                prefetchDistance = 10
             ),
-            remoteMediator = userRemoteMediator,  // Handle API fetching here
+            remoteMediator = UserRemoteMediator(this),  // Handle API fetching here
             pagingSourceFactory = { userDao.getUsersPaged() }
         ).flow
+    }
+
+    override suspend fun removeUser(uid: String?) {
+        uid?.let {
+            userDao.deleteUserByUid(uid)
+        }
     }
 }
