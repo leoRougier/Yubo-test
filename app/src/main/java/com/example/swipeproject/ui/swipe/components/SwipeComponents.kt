@@ -28,14 +28,14 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import com.example.swipeproject.model.entity.CompleteUserProfile
+import com.example.swipeproject.model.entity.CompleteUserProfileEntity
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
 @Composable
 fun SwipeStack(
-    userProfiles: List<CompleteUserProfile>,
+    userProfiles: List<CompleteUserProfileEntity>,
     onSwiped: (String?, SwipeDirection) -> Unit,
     modifier: Modifier = Modifier
 ) {

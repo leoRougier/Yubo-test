@@ -1,6 +1,5 @@
 package com.example.swipeproject.di
 
-import android.util.Log
 import com.example.swipeproject.BuildConfig
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import dagger.Module
@@ -8,10 +7,12 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.json.Json
+import okhttp3.ConnectionPool
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
+import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
 @Module
@@ -43,6 +44,11 @@ object NetworkModule {
         httpLoggingInterceptor: HttpLoggingInterceptor,
     ): OkHttpClient {
         val builder = OkHttpClient.Builder()
+            .connectTimeout(1, TimeUnit.MINUTES)
+            .readTimeout(1, TimeUnit.MINUTES)
+            .writeTimeout(1, TimeUnit.MINUTES)
+            .connectionPool(ConnectionPool(0, 5, TimeUnit.MINUTES))
+            .retryOnConnectionFailure(true)
         if (BuildConfig.DEBUG) {
             builder.addInterceptor(httpLoggingInterceptor)
         }

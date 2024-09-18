@@ -9,7 +9,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.compose.collectAsLazyPagingItems
-import com.example.swipeproject.ui.swipe.SwipeScreen
+import com.example.swipeproject.ui.swipe.DragDropScreen
 import com.example.swipeproject.ui.swipe.SwipeScreenEvent
 import com.example.swipeproject.ui.swipe.SwipeViewModel
 import com.example.swipeproject.ui.theme.SwipeProjectTheme
@@ -26,11 +26,16 @@ class MainActivity : ComponentActivity() {
                     val viewModel = hiltViewModel<SwipeViewModel>()
                     val usersLazyPagingItems = viewModel.usersStateFlow.collectAsLazyPagingItems()
 
-                    SwipeScreen(usersLazyPagingItems){ event ->
+                   /* SwipeScreen(usersLazyPagingItems){ event ->
                         when(event){
                             is SwipeScreenEvent.OnSwipe -> viewModel.removeUser(event.uid)
                         }
 
+                    }*/
+                    DragDropScreen(usersLazyPagingItems ) { event ->
+                        when(event){
+                            is SwipeScreenEvent.OnSwipe -> viewModel.removeUser(event.uid)
+                        }
                     }
                 }
             }

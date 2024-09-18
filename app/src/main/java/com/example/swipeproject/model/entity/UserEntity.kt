@@ -16,7 +16,6 @@ data class UserEntity(
     val location: String,
     val town: String,
     val emojis: List<String>,
-    val batchNumber: Int = 0
 )
 
 

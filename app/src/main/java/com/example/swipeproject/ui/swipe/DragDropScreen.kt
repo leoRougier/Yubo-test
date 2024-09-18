@@ -1,4 +1,3 @@
-// SwipeScreen.kt
 package com.example.swipeproject.ui.swipe
 
 import androidx.compose.foundation.background
@@ -12,14 +11,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
+import com.example.swipeproject.model.UserProfile
 import com.example.swipeproject.model.entity.CompleteUserProfileEntity
-import com.example.swipeproject.ui.swipe.components.SwipeDirection
-import com.example.swipeproject.ui.swipe.components.SwipeStack
+import com.example.swipeproject.ui.swipe.components.DragDropStack
 
-// SwipeScreen.kt
 @Composable
-fun SwipeScreen(
-    usersLazyPagingItems: LazyPagingItems<CompleteUserProfileEntity>, onEvent: (SwipeScreenEvent) -> Unit
+fun DragDropScreen(
+    usersLazyPagingItems: LazyPagingItems<UserProfile>,
+    onEvent: (SwipeScreenEvent) -> Unit
 ) {
 
     Box(
@@ -30,29 +29,19 @@ fun SwipeScreen(
     ) {
         when {
             usersLazyPagingItems.itemSnapshotList.items.isNotEmpty() -> {
-                SwipeStack(
+                DragDropStack(
                     userProfiles = usersLazyPagingItems.itemSnapshotList.items,
-                    onSwiped = { uid, direction ->
-                        // Remove the swiped profile from the list
-                        //profiles.removeAll { it.user?.uid == uid }
-                        // Perform the swipe action
+                    onDropLeft = { uid ->
                         onEvent(SwipeScreenEvent.OnSwipe(uid))
-                        when (direction) {
-                            SwipeDirection.LEFT -> {
-                                //viewModel.dislikeUser(uid)
-                            }
-
-                            SwipeDirection.RIGHT -> {
-                                //viewModel.likeUser(uid)
-                            }
-                        }
+                    },
+                    onDropRight = { uid ->
+                        onEvent(SwipeScreenEvent.OnSwipe(uid))
                     },
                     modifier = Modifier.fillMaxSize()
                 )
             }
 
-            usersLazyPagingItems.loadState.refresh is LoadState.Loading ||
-                usersLazyPagingItems.loadState.append is LoadState.Loading -> {
+            usersLazyPagingItems.loadState.refresh is LoadState.Loading -> {
                 CircularProgressIndicator()
             }
 
@@ -67,4 +56,3 @@ fun SwipeScreen(
         }
     }
 }
-

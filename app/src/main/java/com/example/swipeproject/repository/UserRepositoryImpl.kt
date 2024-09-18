@@ -1,19 +1,23 @@
 package com.example.swipeproject.repository
 
 import android.util.Log
-import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
+import androidx.paging.map
 import com.example.swipeproject.model.ResultStatus
 import com.example.swipeproject.model.UserActionRequest
+import com.example.swipeproject.model.UserProfile
 import com.example.swipeproject.model.UserResponse
-import com.example.swipeproject.model.entity.CompleteUserProfile
+import com.example.swipeproject.model.entity.CompleteUserProfileEntity
 import com.example.swipeproject.model.entity.toPhotoEntities
 import com.example.swipeproject.model.entity.toUserEntity
+import com.example.swipeproject.model.entity.toUserProfile
 import com.example.swipeproject.service.SwipeApiService
 import com.example.swipeproject.storage.database.dao.UserDao
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -22,6 +26,7 @@ class UserRepositoryImpl @Inject constructor(
     private val apiService: SwipeApiService,
     private val userDao: UserDao
 ) : UserRepository {
+
 
     override suspend fun likeUser(uid: String): ResultStatus {
         val request = UserActionRequest(uid)
@@ -43,20 +48,30 @@ class UserRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun fetchUsers(): List<UserResponse>? {
-        val response = apiService.getUsers()
-        Log.i("fetchUsers", response.toString())
-        return if (response.isSuccessful) {
-            response.body()?.data?.let { users ->
-                saveUsersToDatabase(users)  // Save the entire list at once
+    private val isFetching = AtomicBoolean(false)
+
+    override suspend fun fetchUsers() {
+        // If a fetch is already in progress, skip the new request
+        if (!isFetching.compareAndSet(false, true)) return
+        try {
+            val response = apiService.getUsers()
+            Log.i("fetchUsers", response.toString())
+
+            if (response.isSuccessful) {
+                val users = response.body()?.data
+                users?.let {
+                    saveUsersToDatabase(it)  // Save the entire list at once
+                }
+
             }
-            response.body()?.data
-        } else {
-            null
+        } finally {
+            // Reset the flag after fetching is complete
+            isFetching.set(false)
         }
     }
 
-    override suspend fun saveUsersToDatabase(users: List<UserResponse>) {
+
+    private suspend fun saveUsersToDatabase(users: List<UserResponse>) {
         val userEntities = users.map { it.toUserEntity() }
         val photoEntities = users.flatMap { it.toPhotoEntities() }
 
@@ -65,30 +80,34 @@ class UserRepositoryImpl @Inject constructor(
         userDao.insertPhotos(photoEntities)
     }
 
-     override suspend fun refreshUser(){
-         userDao.getUserCount().collect{count ->
-             if (count < 10 ){
-                 fetchUsers()
-             }
-         }
+    override suspend fun refreshUser() {
+        userDao.getUserCount()
+            .collect { count ->
+                if (count < 10) {
+                    fetchUsers()
+                }
+            }
     }
 
-    @OptIn(ExperimentalPagingApi::class)
-    override fun getPagedUsers(): Flow<PagingData<CompleteUserProfile>> {
+    override fun getPagedUsers(): Flow<PagingData<UserProfile>> {
         return Pager(
             config = PagingConfig(
-                pageSize = 20,
+                pageSize = 10,
                 enablePlaceholders = false,
-                prefetchDistance = 10
+                prefetchDistance = 5
             ),
-            //remoteMediator = UserRemoteMediator(::fetchUsers),  // Pass method reference
             pagingSourceFactory = { userDao.getUsersPaged() }
-        ).flow
+        ).flow.map { pagingData ->
+            pagingData.map { completeUserProfile ->
+                completeUserProfile.toUserProfile()
+            }
+        }
     }
 
     override suspend fun removeUser(uid: String?) {
         uid?.let {
             userDao.deleteUserByUid(uid)
+            userDao.deletePhotosByUserId(uid)
         }
     }
 }
