@@ -67,9 +67,11 @@ dependencies {
     implementation(libs.room.runtime)
     ksp(libs.room.compiler)
     implementation(libs.room.ktx)
+    implementation(libs.room.paging)
 
     //HILT
     implementation(libs.hilt.android)
+    implementation(libs.hilt.compose)
     ksp(libs.hilt.compiler)
 
     //RETROFIT

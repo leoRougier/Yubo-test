@@ -1,5 +1,6 @@
 package com.example.swipeproject.repository
 
+import android.util.Log
 import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
@@ -14,12 +15,14 @@ import com.example.swipeproject.service.SwipeApiService
 import com.example.swipeproject.storage.database.dao.UserDao
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
+import javax.inject.Singleton
 
-class UserRepository @Inject constructor(
+@Singleton
+class UserRepositoryImpl @Inject constructor(
     private val apiService: SwipeApiService,
     private val userDao: UserDao,
     private val userRemoteMediator: UserRemoteMediator
-) : UserRepositoryContract {
+) : UserRepository {
 
     override suspend fun likeUser(uid: String): ResultStatus {
         val request = UserActionRequest(uid)
@@ -43,6 +46,7 @@ class UserRepository @Inject constructor(
 
     override suspend fun fetchUsers(): List<UserResponse>? {
         val response = apiService.getUsers()
+        Log.i("fetchUsers", response.toString())
         return if (response.isSuccessful) {
             response.body()?.data?.onEach { user ->
                 saveUserToDatabase(user)
@@ -66,9 +70,9 @@ class UserRepository @Inject constructor(
     override fun getPagedUsers(): Flow<PagingData<CompleteUserProfile>> {
         return Pager(
             config = PagingConfig(
-                pageSize = 10,
+                pageSize = 1,
                 enablePlaceholders = false,
-                prefetchDistance = 2
+                prefetchDistance = 5
             ),
             remoteMediator = userRemoteMediator,  // Handle API fetching here
             pagingSourceFactory = { userDao.getUsersPaged() }

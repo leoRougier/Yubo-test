@@ -1,5 +1,6 @@
 package com.example.swipeproject.di
 
+import android.util.Log
 import com.example.swipeproject.BuildConfig
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import dagger.Module
@@ -17,6 +18,8 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
+    private const val TAG = "NetworkModule"
+
     @Singleton
     @Provides
     fun provideJson(): Json {
@@ -30,24 +33,16 @@ object NetworkModule {
 
     @Singleton
     @Provides
-    fun provideRetrofit(
-        json: Json,
-        okHttpClient: OkHttpClient
-    ): Retrofit {
-        val contentType = "application/json".toMediaType()
-        return Retrofit.Builder()
-            .baseUrl("https://test.yellw.co/")
-            .client(okHttpClient)
-            .addConverterFactory(json.asConverterFactory(contentType))
-            .build()
+    fun provideHttpLoggingInterceptor(): HttpLoggingInterceptor = HttpLoggingInterceptor().apply {
+        level = HttpLoggingInterceptor.Level.BODY
     }
 
     @Singleton
     @Provides
-    fun providesOkHttpClient(
-        builder: OkHttpClient.Builder,
+    fun provideOkHttpClient(
         httpLoggingInterceptor: HttpLoggingInterceptor,
     ): OkHttpClient {
+        val builder = OkHttpClient.Builder()
         if (BuildConfig.DEBUG) {
             builder.addInterceptor(httpLoggingInterceptor)
         }
@@ -56,13 +51,22 @@ object NetworkModule {
 
     @Singleton
     @Provides
-    fun providesHttpLoggingInterceptor(): HttpLoggingInterceptor = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
-    }
+    fun providesRetrofitBuilder(
+        json: Json,
+        okHttpClient: OkHttpClient
+    ): Retrofit.Builder =
+        Retrofit.Builder()
+            .baseUrl("https://test.yellw.co/")  // Replace with your actual base URL
+            .addConverterFactory(
+                json.asConverterFactory(
+                    "application/json".toMediaType()
+                )
+            )
+            .client(okHttpClient)
 
-   /* @Provides
     @Singleton
-    fun provideApiService(retrofit: Retrofit): ApiService {
-        return retrofit.create(ApiService::class.java)
-    }*/
+    @Provides
+    fun provideRetrofit(
+        retrofitBuilder: Retrofit.Builder
+    ): Retrofit = retrofitBuilder.build()
 }
