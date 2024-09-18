@@ -10,6 +10,7 @@ import androidx.room.Transaction
 import com.example.swipeproject.model.entity.CompleteUserProfile
 import com.example.swipeproject.model.entity.PhotoEntity
 import com.example.swipeproject.model.entity.UserEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface UserDao {
@@ -42,4 +43,13 @@ interface UserDao {
 
     @Query("DELETE FROM photos WHERE userId IN (:userIds)")
     suspend fun deletePhotosByUserIds(userIds: List<String>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertUsers(users: List<UserEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPhotos(photos: List<PhotoEntity>)
+
+    @Query("SELECT COUNT(*) FROM users")
+    fun getUserCount(): Flow<Int>
 }

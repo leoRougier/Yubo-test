@@ -7,16 +7,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.LoadState
-import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.LazyPagingItems
+import com.example.swipeproject.model.entity.CompleteUserProfile
+import com.example.swipeproject.ui.swipe.components.SwipeDirection
+import com.example.swipeproject.ui.swipe.components.SwipeStack
 
+// SwipeScreen.kt
 @Composable
 fun SwipeScreen(
-    viewModel: SwipeViewModel = hiltViewModel()
+    usersLazyPagingItems: LazyPagingItems<CompleteUserProfile>, onEvent: (SwipeScreenEvent) -> Unit
 ) {
-    val users = viewModel.usersStateFlow.collectAsLazyPagingItems()
 
     Box(
         modifier = Modifier
@@ -24,51 +25,43 @@ fun SwipeScreen(
             .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
-        when (users.loadState.refresh) {
-            is LoadState.Loading -> {
-                // Initial loading state
+        when {
+            usersLazyPagingItems.itemSnapshotList.items.isNotEmpty() -> {
+                SwipeStack(
+                    userProfiles = usersLazyPagingItems.itemSnapshotList.items,
+                    onSwiped = { uid, direction ->
+                        // Remove the swiped profile from the list
+                        //profiles.removeAll { it.user?.uid == uid }
+                        // Perform the swipe action
+                        onEvent(SwipeScreenEvent.OnSwipe(uid))
+                        when (direction) {
+                            SwipeDirection.LEFT -> {
+                                //viewModel.dislikeUser(uid)
+                            }
+
+                            SwipeDirection.RIGHT -> {
+                                //viewModel.likeUser(uid)
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
+            usersLazyPagingItems.loadState.refresh is LoadState.Loading ||
+                usersLazyPagingItems.loadState.append is LoadState.Loading -> {
                 CircularProgressIndicator()
             }
 
-            is LoadState.Error -> {
-                // Error state during initial load
-                val e = users.loadState.refresh as LoadState.Error
+            usersLazyPagingItems.loadState.refresh is LoadState.Error -> {
+                val e = usersLazyPagingItems.loadState.refresh as LoadState.Error
                 Text(text = "Error: ${e.error.localizedMessage}")
             }
 
             else -> {
-                val currentUser = users.itemSnapshotList.items.firstOrNull()
-                if (currentUser != null) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        // Display User Name
-                        Text(
-                            text = currentUser.user?.name ?: "empty",
-                            style = MaterialTheme.typography.headlineMedium,
-                            modifier = Modifier.padding(16.dp)
-                        )
-                        Spacer(modifier = Modifier.height(24.dp))
-                        // "Next" Button
-                        Button(
-                            onClick = { viewModel.removeUser(currentUser.user?.uid) },
-                            modifier = Modifier
-                                .width(200.dp)
-                                .height(50.dp)
-                        ) {
-                            Text(text = "Next")
-                        }
-                    }
-                } else {
-                    // No more users or empty state
-                    if (users.loadState.append is LoadState.Loading) {
-                        CircularProgressIndicator()
-                    } else if (users.itemSnapshotList.items.isEmpty()) {
-                        Text(text = "No more users")
-                    }
-                }
+                Text(text = "No more users")
             }
         }
     }
 }
+

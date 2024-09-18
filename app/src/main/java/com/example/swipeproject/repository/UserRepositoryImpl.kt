@@ -47,22 +47,30 @@ class UserRepositoryImpl @Inject constructor(
         val response = apiService.getUsers()
         Log.i("fetchUsers", response.toString())
         return if (response.isSuccessful) {
-            response.body()?.data?.onEach { user ->
-                saveUserToDatabase(user)
+            response.body()?.data?.let { users ->
+                saveUsersToDatabase(users)  // Save the entire list at once
             }
+            response.body()?.data
         } else {
             null
         }
     }
 
-    override suspend fun saveUserToDatabase(user: UserResponse) {
-        val userEntity = user.toUserEntity()
-        val photoEntities = user.toPhotoEntities()
+    override suspend fun saveUsersToDatabase(users: List<UserResponse>) {
+        val userEntities = users.map { it.toUserEntity() }
+        val photoEntities = users.flatMap { it.toPhotoEntities() }
 
-        userDao.insertUser(userEntity)
-        photoEntities.forEach { photo ->
-            userDao.insertPhoto(photo)
-        }
+        // Insert the users and their photos in bulk
+        userDao.insertUsers(userEntities)
+        userDao.insertPhotos(photoEntities)
+    }
+
+     override suspend fun refreshUser(){
+         userDao.getUserCount().collect{count ->
+             if (count < 10 ){
+                 fetchUsers()
+             }
+         }
     }
 
     @OptIn(ExperimentalPagingApi::class)
@@ -73,7 +81,7 @@ class UserRepositoryImpl @Inject constructor(
                 enablePlaceholders = false,
                 prefetchDistance = 10
             ),
-            remoteMediator = UserRemoteMediator(this),  // Handle API fetching here
+            //remoteMediator = UserRemoteMediator(::fetchUsers),  // Pass method reference
             pagingSourceFactory = { userDao.getUsersPaged() }
         ).flow
     }

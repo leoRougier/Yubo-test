@@ -21,6 +21,7 @@ class SwipeViewModel @Inject constructor(private val userRepository: UserReposit
 
     init {
         fetchPagedUsers()
+        refreshUser()
     }
 
     fun removeUser(uid: String?) {
@@ -28,12 +29,15 @@ class SwipeViewModel @Inject constructor(private val userRepository: UserReposit
             userRepository.removeUser(uid)
         }
     }
+    private fun refreshUser(){
+        viewModelScope.launch {
+            userRepository.refreshUser()
+        }
+    }
 
 
     private fun fetchPagedUsers() {
         viewModelScope.launch {
-
-            //
             userRepository.getPagedUsers()
                 .cachedIn(viewModelScope)
                 .collectLatest { pagingData ->

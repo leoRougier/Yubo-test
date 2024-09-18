@@ -1,5 +1,6 @@
 package com.example.swipeproject.repository
 
+import android.util.Log
 import androidx.paging.ExperimentalPagingApi
 import androidx.paging.LoadType
 import androidx.paging.PagingState
@@ -12,8 +13,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @OptIn(ExperimentalPagingApi::class)
+@Singleton
 class UserRemoteMediator (
-    private val userRepository: UserRepository,
+    private val fetchUsers: suspend () -> List<UserResponse>?
 ) : RemoteMediator<Int, CompleteUserProfile>() {
 
     private var users : List<UserResponse>? = emptyList()
@@ -26,16 +28,24 @@ class UserRemoteMediator (
             users = when (loadType) {
                 LoadType.REFRESH -> {
                     // On refresh, start from the first batch
-                    userRepository.fetchUsers()
+                    if (state.anchorPosition == null) {
+                        Log.i("UserRemoteMediator", "REFRESH")
+                        //userRepository.fetchUsers() // Fetch only if anchor is null (no data loaded yet)
+                        fetchUsers()
+                    } else {
+                        return MediatorResult.Success(endOfPaginationReached = false) // Don't re-fetch
+                    }
                 }
 
                 LoadType.PREPEND -> {
+                    Log.i("UserRemoteMediator", "PREPEND")
                     // Not needed since we only append
                     return MediatorResult.Success(endOfPaginationReached = true)
                 }
 
                 LoadType.APPEND -> {
-                    userRepository.fetchUsers()
+                    Log.i("UserRemoteMediator", "APPEND")
+                    fetchUsers()
                 }
             }
 
