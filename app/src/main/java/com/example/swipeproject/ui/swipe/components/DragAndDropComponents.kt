@@ -29,6 +29,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 import com.example.swipeproject.model.UserProfile
 import com.example.swipeproject.model.entity.CompleteUserProfileEntity
 import kotlinx.coroutines.CoroutineScope
@@ -45,18 +46,19 @@ fun DragDropStack(
     onDropRight: (String?) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val profiles = userProfiles//.take(2)
     Log.i("DragDropStack", userProfiles.size.toString())
+    Log.i("DragDropStack", userProfiles.toString())
 
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center
     ) {
-        profiles.forEach { userProfile ->
+        userProfiles.reversed().forEach {  userProfile ->
+           // Log.i("DragDropCard", userProfile.toString())
             DragDropCard(
                 userProfile = userProfile,
                 onDropLeft = { uid -> onDropLeft(uid) },
-                onDropRight = { uid -> onDropRight(uid) }
+                onDropRight = { uid -> onDropRight(uid) },
             )
         }
     }
@@ -67,7 +69,7 @@ fun DragDropStack(
 fun DragDropCard(
     userProfile: UserProfile,
     onDropLeft: (String?) -> Unit,
-    onDropRight: (String?) -> Unit
+    onDropRight: (String?) -> Unit,
 ) {
     val offset = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
     val rotationAngle = remember { Animatable(0f) }
@@ -195,12 +197,15 @@ fun DragDropCard(
                 coroutineScope {
                     detectDragGestures(
                         onDrag = { change, dragAmount ->
+                            Log.d("DragDropCard", "Drag started for user: ${userProfile.uid}")
                             launch { handleDrag(this, change, dragAmount) }
                         },
                         onDragEnd = {
+                            Log.d("DragDropCard", "Drag ended for user: ${userProfile.uid}")
                             launch { handleDragEnd(this) }
                         },
                         onDragCancel = {
+                            Log.d("DragDropCard", "Drag cancelled for user: ${userProfile.uid}")
                             launch { handleDragCancel(this) }
                         }
                     )

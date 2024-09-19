@@ -24,17 +24,13 @@ class MainActivity : ComponentActivity() {
                 // A surface container using the 'background' color from the theme
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     val viewModel = hiltViewModel<SwipeViewModel>()
-                    val usersLazyPagingItems = viewModel.usersStateFlow.collectAsLazyPagingItems()
+                    val usersLazyPagingItems = viewModel.usersFlow.collectAsLazyPagingItems()
 
-                   /* SwipeScreen(usersLazyPagingItems){ event ->
-                        when(event){
-                            is SwipeScreenEvent.OnSwipe -> viewModel.removeUser(event.uid)
-                        }
-
-                    }*/
                     DragDropScreen(usersLazyPagingItems ) { event ->
                         when(event){
-                            is SwipeScreenEvent.OnSwipe -> viewModel.removeUser(event.uid)
+                            is SwipeScreenEvent.OnSwipe -> {
+                                viewModel.removeUser(event.uid)
+                            }
                         }
                     }
                 }

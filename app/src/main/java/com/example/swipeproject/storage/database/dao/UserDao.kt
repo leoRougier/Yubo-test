@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.Flow
 interface UserDao {
 
     @Transaction
-    @Query("SELECT * FROM users ORDER BY name ASC")
+    @Query("SELECT * FROM users ORDER BY id ASC")
     fun getUsersPaged(): PagingSource<Int, CompleteUserProfileEntity>
 
     @Query("DELETE FROM users WHERE uid = :uid")
@@ -25,11 +25,15 @@ interface UserDao {
     suspend fun deletePhotosByUserId(userIds: String)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertUsers(users: List<UserEntity>)
+    suspend fun insertUsers(users: List<UserEntity>): List<Long>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPhotos(photos: List<PhotoEntity>)
 
     @Query("SELECT COUNT(*) FROM users")
     fun getUserCount(): Flow<Int>
+
+    @Query("SELECT * FROM users WHERE id >= :id ORDER BY id ASC LIMIT :limit")
+    suspend fun getUsersFrom(id: Int, limit: Int): List<CompleteUserProfileEntity>
 }
+

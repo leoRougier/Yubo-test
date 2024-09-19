@@ -1,5 +1,6 @@
 package com.example.swipeproject.ui.swipe
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
@@ -8,7 +9,9 @@ import com.example.swipeproject.model.UserProfile
 import com.example.swipeproject.model.entity.CompleteUserProfileEntity
 import com.example.swipeproject.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -21,12 +24,19 @@ class SwipeViewModel @Inject constructor(private val userRepository: UserReposit
     private val _usersStateFlow = MutableStateFlow<PagingData<UserProfile>>(PagingData.empty())
     val usersStateFlow: StateFlow<PagingData<UserProfile>> = _usersStateFlow
 
+    val usersFlow: Flow<PagingData<UserProfile>> = userRepository.getPagedUsers()
+        .cachedIn(viewModelScope)
+
+
     init {
-        fetchPagedUsers()
+        viewModelScope.launch {
+            userRepository.fetchUsers()
+        }
         refreshUser()
     }
 
     fun removeUser(uid: String?) {
+        if (uid == null) return
         viewModelScope.launch(Dispatchers.IO) {
             userRepository.removeUser(uid)
         }
@@ -38,7 +48,7 @@ class SwipeViewModel @Inject constructor(private val userRepository: UserReposit
     }
 
 
-    private fun fetchPagedUsers() {
+    /*private fun fetchPagedUsers() {
         viewModelScope.launch(Dispatchers.IO) {
             userRepository.getPagedUsers()
                 .cachedIn(viewModelScope)
@@ -46,5 +56,5 @@ class SwipeViewModel @Inject constructor(private val userRepository: UserReposit
                     _usersStateFlow.value = pagingData
                 }
         }
-    }
+    }*/
 }

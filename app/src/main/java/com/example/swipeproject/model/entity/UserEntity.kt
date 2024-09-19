@@ -2,12 +2,17 @@
 package com.example.swipeproject.model.entity
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.example.swipeproject.model.UserResponse
 
-@Entity(tableName = "users")
+@Entity(
+    tableName = "users",
+    indices = [Index(value = ["uid"], unique = true)]
+)
 data class UserEntity(
-    @PrimaryKey
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
     val uid: String,
     val name: String,
     val birth: String,

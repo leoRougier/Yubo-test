@@ -10,6 +10,7 @@ import com.example.swipeproject.model.UserActionRequest
 import com.example.swipeproject.model.UserProfile
 import com.example.swipeproject.model.UserResponse
 import com.example.swipeproject.model.entity.CompleteUserProfileEntity
+import com.example.swipeproject.model.entity.PhotoEntity
 import com.example.swipeproject.model.entity.toPhotoEntities
 import com.example.swipeproject.model.entity.toUserEntity
 import com.example.swipeproject.model.entity.toUserProfile
@@ -26,7 +27,6 @@ class UserRepositoryImpl @Inject constructor(
     private val apiService: SwipeApiService,
     private val userDao: UserDao
 ) : UserRepository {
-
 
     override suspend fun likeUser(uid: String): ResultStatus {
         val request = UserActionRequest(uid)
@@ -48,42 +48,31 @@ class UserRepositoryImpl @Inject constructor(
         }
     }
 
-    private val isFetching = AtomicBoolean(false)
 
     override suspend fun fetchUsers() {
-        // If a fetch is already in progress, skip the new request
-        if (!isFetching.compareAndSet(false, true)) return
-        try {
-            val response = apiService.getUsers()
-            Log.i("fetchUsers", response.toString())
-
-            if (response.isSuccessful) {
-                val users = response.body()?.data
-                users?.let {
-                    saveUsersToDatabase(it)  // Save the entire list at once
-                }
-
+        val response = apiService.getUsers()
+        if (response.isSuccessful) {
+            val users = response.body()?.data
+            users?.let {
+                saveUsersToDatabase(it)
             }
-        } finally {
-            // Reset the flag after fetching is complete
-            isFetching.set(false)
+
         }
     }
 
 
     private suspend fun saveUsersToDatabase(users: List<UserResponse>) {
         val userEntities = users.map { it.toUserEntity() }
-        val photoEntities = users.flatMap { it.toPhotoEntities() }
-
-        // Insert the users and their photos in bulk
         userDao.insertUsers(userEntities)
+        val photoEntities = users.flatMap { it.toPhotoEntities() }
         userDao.insertPhotos(photoEntities)
     }
+
 
     override suspend fun refreshUser() {
         userDao.getUserCount()
             .collect { count ->
-                if (count < 10) {
+                if (count == 10) {
                     fetchUsers()
                 }
             }
@@ -104,10 +93,15 @@ class UserRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun removeUser(uid: String?) {
-        uid?.let {
+    override suspend fun removeUser(uid: String) {
+        try {
+            Log.d("UserRepository", "Attempting to remove user: $uid")
             userDao.deleteUserByUid(uid)
             userDao.deletePhotosByUserId(uid)
+
+            Log.d("UserRepository", "Successfully removed user: $uid")
+        } catch (e: Exception) {
+            Log.e("UserRepository", "Error removing user: ${e.message}")
         }
     }
 }

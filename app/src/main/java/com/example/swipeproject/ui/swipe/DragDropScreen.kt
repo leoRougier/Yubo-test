@@ -40,6 +40,9 @@ fun DragDropScreen(
                     modifier = Modifier.fillMaxSize()
                 )
             }
+            usersLazyPagingItems.loadState.append is LoadState.Loading -> {
+
+            }
 
             usersLazyPagingItems.loadState.refresh is LoadState.Loading -> {
                 CircularProgressIndicator()

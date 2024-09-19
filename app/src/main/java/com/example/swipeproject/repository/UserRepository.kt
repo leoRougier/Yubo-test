@@ -11,6 +11,6 @@ interface UserRepository {
     suspend fun dislikeUser(uid: String): ResultStatus
     suspend fun fetchUsers()
     fun getPagedUsers(): Flow<PagingData<UserProfile>>
-    suspend fun removeUser(uid: String?)
+    suspend fun removeUser(uid: String)
     suspend fun refreshUser()
 }
