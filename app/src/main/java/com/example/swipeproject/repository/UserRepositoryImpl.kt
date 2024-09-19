@@ -9,8 +9,6 @@ import com.example.swipeproject.model.ResultStatus
 import com.example.swipeproject.model.UserActionRequest
 import com.example.swipeproject.model.UserProfile
 import com.example.swipeproject.model.UserResponse
-import com.example.swipeproject.model.entity.CompleteUserProfileEntity
-import com.example.swipeproject.model.entity.PhotoEntity
 import com.example.swipeproject.model.entity.toPhotoEntities
 import com.example.swipeproject.model.entity.toUserEntity
 import com.example.swipeproject.model.entity.toUserProfile
@@ -18,7 +16,6 @@ import com.example.swipeproject.service.SwipeApiService
 import com.example.swipeproject.storage.database.dao.UserDao
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
 

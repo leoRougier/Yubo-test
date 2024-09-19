@@ -4,5 +4,8 @@ data class UserProfile(
     val uid: String,
     val name: String,
     val age: Int,
-    val profilePhoto: String
+    val location: String,
+    val town: String,
+    val emojis: List<String>,
+    val profilePhoto: List<String>
 )

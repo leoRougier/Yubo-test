@@ -3,7 +3,6 @@ package com.example.swipeproject.repository
 import androidx.paging.PagingData
 import com.example.swipeproject.model.ResultStatus
 import com.example.swipeproject.model.UserProfile
-import com.example.swipeproject.model.entity.CompleteUserProfileEntity
 import kotlinx.coroutines.flow.Flow
 
 interface UserRepository {

@@ -81,6 +81,9 @@ dependencies {
     implementation(libs.okhttp.logging.interceptor)
     implementation(libs.retrofit.serialization.converter)
 
+    //COIL
+    implementation(libs.coil)
+
     //TEST
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

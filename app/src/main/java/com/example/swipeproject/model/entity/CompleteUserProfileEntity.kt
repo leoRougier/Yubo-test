@@ -15,9 +15,12 @@ data class CompleteUserProfileEntity(
 
 fun CompleteUserProfileEntity.toUserProfile(): UserProfile {
     return UserProfile(
-        uid = user.uid ,
+        uid = user.uid,
         name = user.name,
         age = user.age,
-        profilePhoto = photos.firstOrNull()?.url ?: ""
+        location = user.location,
+        town = user.town,
+        emojis = user.emojis,
+        profilePhoto = photos.map { it.url },
     )
 }

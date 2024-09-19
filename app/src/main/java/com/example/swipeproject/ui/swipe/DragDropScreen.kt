@@ -12,7 +12,6 @@ import androidx.compose.ui.Modifier
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import com.example.swipeproject.model.UserProfile
-import com.example.swipeproject.model.entity.CompleteUserProfileEntity
 import com.example.swipeproject.ui.swipe.components.DragDropStack
 
 @Composable
