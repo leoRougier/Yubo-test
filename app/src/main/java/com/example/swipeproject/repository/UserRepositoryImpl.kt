@@ -25,12 +25,16 @@ class UserRepositoryImpl @Inject constructor(
     private val userDao: UserDao
 ) : UserRepository {
 
+    override suspend fun getUserCount() = userDao.getUserCount()
+
     override suspend fun likeUser(uid: String): ResultStatus {
+        Log.i("likeUser", "uid $uid ")
         val request = UserActionRequest(uid)
         val response = apiService.likeUser(request)
         return if (response.isSuccessful) {
             response.body()?.result ?: ResultStatus.ERROR
         } else {
+            Log.i("likeUser", "ERROR")
             ResultStatus.ERROR
         }
     }
@@ -67,9 +71,9 @@ class UserRepositoryImpl @Inject constructor(
 
 
     override suspend fun refreshUser() {
-        userDao.getUserCount()
+        userDao.observeUserCount()
             .collect { count ->
-                if (count == 10) {
+                if (count == 5) {
                     fetchUsers()
                 }
             }

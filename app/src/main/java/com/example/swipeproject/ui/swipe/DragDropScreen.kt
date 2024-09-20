@@ -1,5 +1,6 @@
 package com.example.swipeproject.ui.swipe
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,16 +32,22 @@ fun DragDropScreen(
                 DragDropStack(
                     userProfiles = usersLazyPagingItems.itemSnapshotList.items,
                     onDropLeft = { uid ->
-                        onEvent(SwipeScreenEvent.OnSwipe(uid))
+                        onEvent(SwipeScreenEvent.DisLike(uid))
                     },
                     onDropRight = { uid ->
-                        onEvent(SwipeScreenEvent.OnSwipe(uid))
+                        onEvent(SwipeScreenEvent.Like(uid))
                     },
                     modifier = Modifier.fillMaxSize()
                 )
             }
-            usersLazyPagingItems.loadState.append is LoadState.Loading -> {
 
+            usersLazyPagingItems.loadState.append is LoadState.Loading -> {
+                Log.i("loadState", "append : Loading")
+            }
+
+            usersLazyPagingItems.loadState.append is LoadState.Error -> {
+                val e = usersLazyPagingItems.loadState.append as LoadState.Error
+                Text(text = "Error: ${e.error.localizedMessage}")
             }
 
             usersLazyPagingItems.loadState.refresh is LoadState.Loading -> {
@@ -53,6 +60,7 @@ fun DragDropScreen(
             }
 
             else -> {
+                Log.i("loadState", "loadState : ${usersLazyPagingItems.loadState}")
                 Text(text = "No more users")
             }
         }

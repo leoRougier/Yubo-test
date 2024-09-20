@@ -31,7 +31,10 @@ interface UserDao {
     suspend fun insertPhotos(photos: List<PhotoEntity>)
 
     @Query("SELECT COUNT(*) FROM users")
-    fun getUserCount(): Flow<Int>
+    fun observeUserCount(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM users")
+    suspend fun getUserCount(): Int
 
     @Query("SELECT * FROM users WHERE id >= :id ORDER BY id ASC LIMIT :limit")
     suspend fun getUsersFrom(id: Int, limit: Int): List<CompleteUserProfileEntity>

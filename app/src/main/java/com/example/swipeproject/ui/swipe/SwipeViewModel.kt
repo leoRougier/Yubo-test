@@ -1,5 +1,6 @@
 package com.example.swipeproject.ui.swipe
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
@@ -17,16 +18,15 @@ import javax.inject.Inject
 @HiltViewModel
 class SwipeViewModel @Inject constructor(private val userRepository: UserRepository) : ViewModel() {
 
-    private val _usersStateFlow = MutableStateFlow<PagingData<UserProfile>>(PagingData.empty())
-    val usersStateFlow: StateFlow<PagingData<UserProfile>> = _usersStateFlow
-
     val usersFlow: Flow<PagingData<UserProfile>> = userRepository.getPagedUsers()
         .cachedIn(viewModelScope)
 
 
     init {
-        viewModelScope.launch {
-            userRepository.fetchUsers()
+        viewModelScope.launch(Dispatchers.IO) {
+            if (userRepository.getUserCount() == 0) {
+                userRepository.fetchUsers()
+            }
         }
         refreshUser()
     }
@@ -37,20 +37,27 @@ class SwipeViewModel @Inject constructor(private val userRepository: UserReposit
             userRepository.removeUser(uid)
         }
     }
-    private fun refreshUser(){
+
+    fun like(uid: String?){
+        Log.i("likeUser", "viewmodel $uid")
+        if (uid == null) return
+        viewModelScope.launch(Dispatchers.IO) {
+            userRepository.likeUser(uid)
+            userRepository.removeUser(uid)
+        }
+    }
+
+    fun disLike(uid: String?){
+        if (uid == null) return
+        viewModelScope.launch(Dispatchers.IO) {
+            userRepository.dislikeUser(uid)
+            userRepository.removeUser(uid)
+        }
+    }
+
+    private fun refreshUser() {
         viewModelScope.launch(Dispatchers.IO) {
             userRepository.refreshUser()
         }
     }
-
-
-    /*private fun fetchPagedUsers() {
-        viewModelScope.launch(Dispatchers.IO) {
-            userRepository.getPagedUsers()
-                .cachedIn(viewModelScope)
-                .collectLatest { pagingData ->
-                    _usersStateFlow.value = pagingData
-                }
-        }
-    }*/
 }

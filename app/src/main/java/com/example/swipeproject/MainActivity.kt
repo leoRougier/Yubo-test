@@ -1,6 +1,7 @@
 package com.example.swipeproject
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -21,9 +22,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+
         setContent {
             SwipeProjectTheme {
-                // A surface container using the 'background' color from the theme
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     val viewModel = hiltViewModel<SwipeViewModel>()
                     val usersLazyPagingItems = viewModel.usersFlow.collectAsLazyPagingItems()
@@ -33,6 +34,8 @@ class MainActivity : ComponentActivity() {
                             is SwipeScreenEvent.OnSwipe -> {
                                 viewModel.removeUser(event.uid)
                             }
+                            is SwipeScreenEvent.DisLike -> viewModel.disLike(event.uid)
+                            is SwipeScreenEvent.Like -> viewModel.like(event.uid)
                         }
                     }
                 }

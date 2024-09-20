@@ -12,4 +12,5 @@ interface UserRepository {
     fun getPagedUsers(): Flow<PagingData<UserProfile>>
     suspend fun removeUser(uid: String)
     suspend fun refreshUser()
+    suspend fun getUserCount(): Int
 }

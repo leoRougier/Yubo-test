@@ -9,6 +9,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -58,6 +60,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import com.example.swipeproject.R
 import com.example.swipeproject.model.UserProfile
@@ -74,14 +77,13 @@ fun DragDropStack(
     userProfiles: List<UserProfile>,
     onDropLeft: (String?) -> Unit,
     onDropRight: (String?) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Box(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         userProfiles.reversed().forEach { userProfile ->
-            Log.i("DragDropCard", userProfile.toString())
             DragDropCard(
                 userProfile = userProfile,
                 onDropLeft = { uid -> onDropLeft(uid) },
@@ -247,7 +249,6 @@ val customFontFamily = FontFamily(
 fun UserProfile(userProfile: UserProfile) {
     val pagerState = rememberPagerState(pageCount = { userProfile.profilePhoto.size })
     val coroutineScope = rememberCoroutineScope()
-
     val isLastPage by remember {
         derivedStateOf { pagerState.currentPage == userProfile.profilePhoto.lastIndex }
     }
@@ -260,7 +261,7 @@ fun UserProfile(userProfile: UserProfile) {
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),
-            userScrollEnabled = false
+            userScrollEnabled = false,
         ) { page ->
             AsyncImage(
                 model = userProfile.profilePhoto[page],
@@ -299,10 +300,63 @@ fun UserProfile(userProfile: UserProfile) {
             )
             Spacer(modifier = Modifier.padding(16.dp))
 
-            UserProfileOverlay(userProfile, isLastPage)
+            Box {
+                HorizontalPagerClickZones(pagerState = pagerState, scope = coroutineScope, userProfile.profilePhoto.lastIndex)
+                UserProfileOverlay(userProfile, isLastPage)
+            }
         }
     }
 }
+
+@Composable
+fun HorizontalPagerClickZones(pagerState: PagerState, scope: CoroutineScope, lastIndex: Int) {
+    Row(
+        modifier = Modifier
+            .fillMaxSize()
+            .zIndex(1f)
+    ) {
+        // Left Click Area
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                ) {
+                    scope.launch {
+                        val previousPage = if (pagerState.currentPage > 0) {
+                            pagerState.currentPage - 1
+                        } else {
+                            lastIndex
+                        }
+                        pagerState.animateScrollToPage(previousPage)
+                    }
+                }
+        )
+
+        // Right Click Area
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                ) {
+                    scope.launch {
+                        val nextPage = if (pagerState.currentPage < lastIndex) {
+                            pagerState.currentPage + 1
+                        } else {
+                            0
+                        }
+                        pagerState.animateScrollToPage(nextPage)
+                    }
+                }
+        )
+    }
+}
+
 
 @Composable
 fun UserProfileOverlay(userProfile: UserProfile, showFullData: Boolean) {
