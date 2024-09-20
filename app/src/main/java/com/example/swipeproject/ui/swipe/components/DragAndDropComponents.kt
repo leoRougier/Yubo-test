@@ -1,5 +1,6 @@
 package com.example.swipeproject.ui.swipe.components
 
+import android.util.Log
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VectorConverter
@@ -63,8 +64,10 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.paging.ItemSnapshotList
 import coil.compose.AsyncImage
 import com.example.swipeproject.R
+import com.example.swipeproject.model.DragState
 import com.example.swipeproject.model.UserProfile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.coroutineScope
@@ -76,64 +79,69 @@ import kotlin.math.roundToInt
 
 @Composable
 fun DragDropStack(
-    userProfiles: List<UserProfile>,
+    userProfiles: ItemSnapshotList<UserProfile>,
     onDropLeft: (String?) -> Unit,
     onDropRight: (String?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    Log.i("userProfiles", userProfiles.size.toString())
 
-    val isDragging = remember { mutableStateOf(false) }
-    val dragDirection = remember { mutableStateOf<Int?>(null) } // -1 for left, 1 for right
-    val dragProgress = remember { mutableFloatStateOf(0f) }
+    // Shared drag state
+    val dragState = remember { DragState() }
 
     Box(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        userProfiles.reversed().forEach { userProfile ->
-            DragDropCard(
-                userProfile = userProfile,
-                onDropLeft = { uid -> onDropLeft(uid) },
-                onDropRight = { uid -> onDropRight(uid) },
-                onDragStateChanged = { dragging, direction, progress ->
-                    isDragging.value = dragging
-                    dragDirection.value = direction
-                    dragProgress.floatValue = progress
+        userProfiles.reversed().forEachIndexed { index, userProfile ->
+            userProfile?.let { profile ->
+                DragDropCard(
+                    onDropLeft = { onDropLeft(profile.uid) },
+                    onDropRight = { onDropRight(profile.uid) },
+                    onDragStateChanged = { dragging, direction, progress ->
+                        dragState.update(dragging, direction, progress)
+                    }
+                ) {
+                    Log.i("index user", "index : $index")
+                    Log.i("index user", "name : ${profile.name}")
+                    UserProfile(profile, false)
                 }
-            ) {
-                UserProfile(userProfile)
             }
         }
 
-        if (isDragging.value && dragDirection.value != null) {
-            val imageRes = if (dragDirection.value == 1) {
-                R.drawable.ic_like
-            } else {
-                R.drawable.ic_dislike
-            }
-
-            val animatedButtonSize by animateDpAsState(
-                targetValue = 48.dp + (24.dp * dragProgress.floatValue).coerceAtMost(24.dp),
-                animationSpec = tween(durationMillis = 100)
-            )
-
-            Image(
-                painter = painterResource(id = imageRes),
-                contentDescription = if (dragDirection.value == 1) "Like" else "Dislike",
-                modifier = Modifier
-                    .size(animatedButtonSize)
-                    .clip(RoundedCornerShape(24.dp))
-            )
-        }
+        // Isolate the drag indicator
+        AnimatedButton(dragState = dragState)
     }
 }
 
+@Composable
+fun AnimatedButton(dragState: DragState) {
+    if (dragState.isDragging && dragState.direction != null) {
+        val imageRes = if (dragState.direction == 1) {
+            R.drawable.ic_like
+        } else {
+            R.drawable.ic_dislike
+        }
+
+        val animatedButtonSize by animateDpAsState(
+            targetValue = 48.dp + (24.dp * dragState.progress).coerceAtMost(24.dp),
+            animationSpec = tween(durationMillis = 100), label = "animate button size"
+        )
+
+        Image(
+            painter = painterResource(id = imageRes),
+            contentDescription = if (dragState.direction == 1) "Like" else "Dislike",
+            modifier = Modifier
+                .size(animatedButtonSize)
+                .clip(RoundedCornerShape(24.dp))
+        )
+    }
+}
 
 @Composable
 fun DragDropCard(
-    userProfile: UserProfile,
-    onDropLeft: (String?) -> Unit,
-    onDropRight: (String?) -> Unit,
+    onDropLeft: () -> Unit,
+    onDropRight: () -> Unit,
     onDragStateChanged: (dragging: Boolean, direction: Int?, progress: Float) -> Unit,
     content: @Composable () -> Unit
 ) {
@@ -149,7 +157,7 @@ fun DragDropCard(
     // Internal drag state
     val isDraggingInternal = remember { mutableStateOf(false) }
     val dragDirectionInternal = remember { mutableStateOf<Int?>(null) }
-    val dragProgressInternal = remember { mutableStateOf(0f) }
+    val dragProgressInternal = remember { mutableFloatStateOf(0f) }
 
     // Update threshold when the card size changes
     val onCardSizeChanged: (IntSize) -> Unit = { size ->
@@ -191,9 +199,9 @@ fun DragDropCard(
 
             // Trigger callback based on drag direction
             if (offset.value.x > 0) {
-                onDropRight(userProfile.uid)
+                onDropRight()
             } else {
-                onDropLeft(userProfile.uid)
+                onDropLeft()
             }
         } else {
             // Animate back to original position with a spring animation
@@ -219,11 +227,11 @@ fun DragDropCard(
         }
 
         // Notify DragDropStack about the drag end
-        onDragStateChanged(isDraggingInternal.value, dragDirectionInternal.value, dragProgressInternal.value)
+        onDragStateChanged(isDraggingInternal.value, dragDirectionInternal.value, dragProgressInternal.floatValue)
     }
 
     // Handle drag gesture
-    suspend fun handleDrag(scope: CoroutineScope, change: PointerInputChange, dragAmount: Offset) {
+    suspend fun handleDrag(change: PointerInputChange, dragAmount: Offset) {
         isDraggingInternal.value = true
         offset.snapTo(offset.value + dragAmount)
         updateRotationAngle()
@@ -236,10 +244,10 @@ fun DragDropCard(
         }
 
         // Update drag progress
-        dragProgressInternal.value = (abs(offset.value.x) / threshold).coerceIn(0f, 1f)
+        dragProgressInternal.floatValue = (abs(offset.value.x) / threshold).coerceIn(0f, 1f)
 
         // Notify DragDropStack about the drag progress
-        onDragStateChanged(isDraggingInternal.value, dragDirectionInternal.value, dragProgressInternal.value)
+        onDragStateChanged(isDraggingInternal.value, dragDirectionInternal.value, dragProgressInternal.floatValue)
 
         change.consumeAllChanges()
     }
@@ -247,7 +255,7 @@ fun DragDropCard(
     suspend fun handleDragCancel(scope: CoroutineScope) {
         isDraggingInternal.value = false
         dragDirectionInternal.value = null
-        dragProgressInternal.value = 0f
+        dragProgressInternal.floatValue = 0f
         // Animate back to original position with a spring animation
         scope.launch {
             offset.animateTo(
@@ -270,7 +278,7 @@ fun DragDropCard(
         }
 
         // Notify DragDropStack about the drag cancel
-        onDragStateChanged(isDraggingInternal.value, dragDirectionInternal.value, dragProgressInternal.value)
+        onDragStateChanged(isDraggingInternal.value, dragDirectionInternal.value, dragProgressInternal.floatValue)
     }
 
     Box(
@@ -290,7 +298,7 @@ fun DragDropCard(
                 coroutineScope {
                     detectDragGestures(
                         onDrag = { change, dragAmount ->
-                            launch { handleDrag(this, change, dragAmount) }
+                            launch { handleDrag( change, dragAmount) }
                         },
                         onDragEnd = {
                             launch { handleDragEnd(this) }
@@ -312,7 +320,7 @@ val customFontFamily = FontFamily(
 )
 
 @Composable
-fun UserProfile(userProfile: UserProfile) {
+fun UserProfile(userProfile: UserProfile, test: Boolean) {
     val pagerState = rememberPagerState(pageCount = { userProfile.profilePhoto.size })
     val coroutineScope = rememberCoroutineScope()
     val isLastPage by remember {
@@ -329,14 +337,15 @@ fun UserProfile(userProfile: UserProfile) {
             modifier = Modifier.fillMaxSize(),
             userScrollEnabled = false,
         ) { page ->
-            AsyncImage(
-                model = userProfile.profilePhoto[page],
-                contentDescription = "Profile Photo ${page + 1}",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(8))
-            )
+            if(test){
+                AsyncImage(
+                    model = userProfile.profilePhoto[page],
+                    contentDescription = "Profile Photo ${page + 1}",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                )
+            }
         }
 
         if (isLastPage) {

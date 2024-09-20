@@ -30,7 +30,7 @@ fun DragDropScreen(
         when {
             usersLazyPagingItems.itemSnapshotList.items.isNotEmpty() -> {
                 DragDropStack(
-                    userProfiles = usersLazyPagingItems.itemSnapshotList.items,
+                    userProfiles = usersLazyPagingItems.itemSnapshotList,
                     onDropLeft = { uid ->
                         onEvent(SwipeScreenEvent.DisLike(uid))
                     },
