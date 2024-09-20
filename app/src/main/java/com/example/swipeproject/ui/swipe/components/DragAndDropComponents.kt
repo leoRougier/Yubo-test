@@ -1,11 +1,12 @@
 package com.example.swipeproject.ui.swipe.components
 
-import android.util.Log
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -52,6 +53,7 @@ import androidx.compose.ui.input.pointer.consumeAllChanges
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -79,6 +81,11 @@ fun DragDropStack(
     onDropRight: (String?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+
+    val isDragging = remember { mutableStateOf(false) }
+    val dragDirection = remember { mutableStateOf<Int?>(null) } // -1 for left, 1 for right
+    val dragProgress = remember { mutableFloatStateOf(0f) }
+
     Box(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -88,6 +95,34 @@ fun DragDropStack(
                 userProfile = userProfile,
                 onDropLeft = { uid -> onDropLeft(uid) },
                 onDropRight = { uid -> onDropRight(uid) },
+                onDragStateChanged = { dragging, direction, progress ->
+                    isDragging.value = dragging
+                    dragDirection.value = direction
+                    dragProgress.floatValue = progress
+                }
+            ) {
+                UserProfile(userProfile)
+            }
+        }
+
+        if (isDragging.value && dragDirection.value != null) {
+            val imageRes = if (dragDirection.value == 1) {
+                R.drawable.ic_like
+            } else {
+                R.drawable.ic_dislike
+            }
+
+            val animatedButtonSize by animateDpAsState(
+                targetValue = 48.dp + (24.dp * dragProgress.floatValue).coerceAtMost(24.dp),
+                animationSpec = tween(durationMillis = 100)
+            )
+
+            Image(
+                painter = painterResource(id = imageRes),
+                contentDescription = if (dragDirection.value == 1) "Like" else "Dislike",
+                modifier = Modifier
+                    .size(animatedButtonSize)
+                    .clip(RoundedCornerShape(24.dp))
             )
         }
     }
@@ -99,6 +134,8 @@ fun DragDropCard(
     userProfile: UserProfile,
     onDropLeft: (String?) -> Unit,
     onDropRight: (String?) -> Unit,
+    onDragStateChanged: (dragging: Boolean, direction: Int?, progress: Float) -> Unit,
+    content: @Composable () -> Unit
 ) {
     val offset = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
     val rotationAngle = remember { Animatable(0f) }
@@ -108,6 +145,11 @@ fun DragDropCard(
     var threshold by remember { mutableFloatStateOf(0f) }
 
     var cardSize by remember { mutableStateOf(IntSize.Zero) }
+
+    // Internal drag state
+    val isDraggingInternal = remember { mutableStateOf(false) }
+    val dragDirectionInternal = remember { mutableStateOf<Int?>(null) }
+    val dragProgressInternal = remember { mutableStateOf(0f) }
 
     // Update threshold when the card size changes
     val onCardSizeChanged: (IntSize) -> Unit = { size ->
@@ -123,6 +165,7 @@ fun DragDropCard(
     }
 
     suspend fun handleDragEnd(scope: CoroutineScope) {
+        isDraggingInternal.value = false
         val horizontalDistance = abs(offset.value.x)
         if (horizontalDistance > threshold) {
             // Calculate target offset to animate card off-screen
@@ -174,17 +217,37 @@ fun DragDropCard(
                 )
             }
         }
-    }
 
+        // Notify DragDropStack about the drag end
+        onDragStateChanged(isDraggingInternal.value, dragDirectionInternal.value, dragProgressInternal.value)
+    }
 
     // Handle drag gesture
     suspend fun handleDrag(scope: CoroutineScope, change: PointerInputChange, dragAmount: Offset) {
+        isDraggingInternal.value = true
         offset.snapTo(offset.value + dragAmount)
         updateRotationAngle()
+
+        // Update drag direction
+        dragDirectionInternal.value = when {
+            offset.value.x > 0 -> 1
+            offset.value.x < 0 -> -1
+            else -> null
+        }
+
+        // Update drag progress
+        dragProgressInternal.value = (abs(offset.value.x) / threshold).coerceIn(0f, 1f)
+
+        // Notify DragDropStack about the drag progress
+        onDragStateChanged(isDraggingInternal.value, dragDirectionInternal.value, dragProgressInternal.value)
+
         change.consumeAllChanges()
     }
 
     suspend fun handleDragCancel(scope: CoroutineScope) {
+        isDraggingInternal.value = false
+        dragDirectionInternal.value = null
+        dragProgressInternal.value = 0f
         // Animate back to original position with a spring animation
         scope.launch {
             offset.animateTo(
@@ -205,8 +268,10 @@ fun DragDropCard(
                 )
             )
         }
-    }
 
+        // Notify DragDropStack about the drag cancel
+        onDragStateChanged(isDraggingInternal.value, dragDirectionInternal.value, dragProgressInternal.value)
+    }
 
     Box(
         modifier = Modifier
@@ -237,9 +302,10 @@ fun DragDropCard(
                 }
             }
     ) {
-        UserProfile(userProfile)
+        content()
     }
 }
+
 
 val customFontFamily = FontFamily(
     Font(R.font.lilitaone_regular, FontWeight.Normal, FontStyle.Normal)
@@ -273,7 +339,6 @@ fun UserProfile(userProfile: UserProfile) {
             )
         }
 
-        // Semi-transparent overlay on the last page
         if (isLastPage) {
             Box(
                 modifier = Modifier
@@ -361,7 +426,7 @@ fun HorizontalPagerClickZones(pagerState: PagerState, scope: CoroutineScope, las
 @Composable
 fun UserProfileOverlay(userProfile: UserProfile, showFullData: Boolean) {
     val textStyle = MaterialTheme.typography.headlineLarge.copy(
-        color = MaterialTheme.colorScheme.onBackground,
+        color = Color.White,
         fontFamily = customFontFamily
     )
 
