@@ -7,6 +7,7 @@ import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
@@ -31,15 +32,13 @@ class DragDropController(
     val rotationAngle = Animatable(0f)
 
     // Internal state
-    var threshold by mutableStateOf(0f)
-        private set
-    var cardSize by mutableStateOf(IntSize.Zero)
-        private set
+    private var threshold by mutableFloatStateOf(0f)
+    private var cardSize by mutableStateOf(IntSize.Zero)
 
     // Drag state
     private var isDragging by mutableStateOf(false)
     private var dragDirection by mutableStateOf<Int?>(null)
-    private var dragProgress by mutableStateOf(0f)
+    private var dragProgress by mutableFloatStateOf(0f)
 
     // Coroutine scope for animations
     lateinit var scope: CoroutineScope
@@ -51,7 +50,7 @@ class DragDropController(
     }
 
     // Update rotation based on offset
-    suspend fun updateRotationAngle() {
+    private suspend fun updateRotationAngle() {
         val angle = ((offset.value.x / (cardSize.width / 2).coerceAtLeast(1)) * maxTiltAngle)
             .coerceIn(-maxTiltAngle, maxTiltAngle)
         rotationAngle.snapTo(angle)
@@ -189,8 +188,5 @@ class DragDropController(
         // Notify state changes
         onDragStateChanged(isDragging, dragDirection, dragProgress)
     }
-
-    // Extension function to calculate distance of an Offset
-    private fun Offset.getDistance(): Float = kotlin.math.sqrt(x * x + y * y)
 }
 

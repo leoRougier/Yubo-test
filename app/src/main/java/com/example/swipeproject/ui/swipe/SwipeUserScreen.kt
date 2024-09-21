@@ -13,7 +13,7 @@ import androidx.compose.ui.Modifier
 import com.example.swipeproject.ui.swipe.components.DragDropStack
 
 @Composable
-fun DragDropScreen(
+fun SwipeUserScreen(
     state: State<SwipeUserScreenState>,
     onEvent: (SwipeScreenEvent) -> Unit
 ) {

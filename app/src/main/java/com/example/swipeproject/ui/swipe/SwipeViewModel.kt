@@ -1,5 +1,6 @@
 package com.example.swipeproject.ui.swipe
 
+import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.swipeproject.model.UserProfile
@@ -108,6 +109,7 @@ class SwipeViewModel @Inject constructor(private val userRepository: UserReposit
     }
 }
 
+@Stable
 data class SwipeUserScreenState(
     val isLoading: Boolean = false,
     val userProfiles: List<UserProfile> = emptyList()

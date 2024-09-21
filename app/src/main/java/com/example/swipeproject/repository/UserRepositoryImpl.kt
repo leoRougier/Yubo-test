@@ -19,8 +19,11 @@ class UserRepositoryImpl @Inject constructor(
     private val userDao: UserDao
 ) : UserRepository {
 
-    private val PAGE_COUNT = 3
-    private val REFETCH_THRESHOLD = 19
+    companion object {
+        private const val PAGE_COUNT = 3
+        private const val REFETCH_THRESHOLD = 19
+    }
+
 
     override suspend fun getUserProfilesFrom(lastFetchedId: Int, pageSize: Int): List<UserProfile> =
         userDao.getUsersFrom(lastFetchedId, pageSize).map { it.toUserProfile() }

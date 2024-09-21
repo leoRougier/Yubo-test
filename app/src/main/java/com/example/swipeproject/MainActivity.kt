@@ -10,7 +10,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.swipeproject.ui.swipe.DragDropScreen
+import com.example.swipeproject.ui.swipe.SwipeUserScreen
 import com.example.swipeproject.ui.swipe.SwipeScreenEvent
 import com.example.swipeproject.ui.swipe.SwipeViewModel
 import com.example.swipeproject.ui.theme.SwipeProjectTheme
@@ -29,8 +29,8 @@ class MainActivity : ComponentActivity() {
                     val viewModel = hiltViewModel<SwipeViewModel>()
                     val state = viewModel.userStack.collectAsState()
 
-                    DragDropScreen(state ) { event ->
-                        when(event){
+                    SwipeUserScreen(state) { event ->
+                        when (event) {
                             is SwipeScreenEvent.DisLike -> viewModel.disLike(event.uid)
                             is SwipeScreenEvent.Like -> viewModel.like(event.uid)
                         }
