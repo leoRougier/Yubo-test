@@ -46,7 +46,7 @@ class SwipeViewModel @Inject constructor(private val userRepository: UserReposit
                     lastFetchedId = extractLastId(newUsers)
                     withContext(Dispatchers.Main) {
                         _userStack.update { currentState ->
-                            currentState.copy(userProfiles = currentState.userProfiles + newUsers)
+                            currentState.copy(userProfiles = currentState.userProfiles + newUsers, isLoading = false)
                         }
                     }
                 } else {
@@ -111,6 +111,6 @@ class SwipeViewModel @Inject constructor(private val userRepository: UserReposit
 
 @Stable
 data class SwipeUserScreenState(
-    val isLoading: Boolean = false,
+    val isLoading: Boolean = true,
     val userProfiles: List<UserProfile> = emptyList()
 )
