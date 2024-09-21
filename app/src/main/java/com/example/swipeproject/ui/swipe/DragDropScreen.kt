@@ -1,23 +1,19 @@
 package com.example.swipeproject.ui.swipe
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.paging.LoadState
-import androidx.paging.compose.LazyPagingItems
-import com.example.swipeproject.model.UserProfile
 import com.example.swipeproject.ui.swipe.components.DragDropStack
 
 @Composable
 fun DragDropScreen(
-    usersLazyPagingItems: LazyPagingItems<UserProfile>,
+    state: State<SwipeUserScreenState>,
     onEvent: (SwipeScreenEvent) -> Unit
 ) {
 
@@ -28,9 +24,9 @@ fun DragDropScreen(
         contentAlignment = Alignment.Center
     ) {
         when {
-            usersLazyPagingItems.itemSnapshotList.items.isNotEmpty() -> {
+            state.value.userProfiles.isNotEmpty() -> {
                 DragDropStack(
-                    userProfiles = usersLazyPagingItems.itemSnapshotList,
+                    userProfiles = state.value.userProfiles,
                     onDropLeft = { uid ->
                         onEvent(SwipeScreenEvent.DisLike(uid))
                     },
@@ -41,26 +37,8 @@ fun DragDropScreen(
                 )
             }
 
-            usersLazyPagingItems.loadState.append is LoadState.Loading -> {
-                Log.i("loadState", "append : Loading")
-            }
-
-            usersLazyPagingItems.loadState.append is LoadState.Error -> {
-                val e = usersLazyPagingItems.loadState.append as LoadState.Error
-                Text(text = "Error: ${e.error.localizedMessage}")
-            }
-
-            usersLazyPagingItems.loadState.refresh is LoadState.Loading -> {
-                CircularProgressIndicator()
-            }
-
-            usersLazyPagingItems.loadState.refresh is LoadState.Error -> {
-                val e = usersLazyPagingItems.loadState.refresh as LoadState.Error
-                Text(text = "Error: ${e.error.localizedMessage}")
-            }
-
             else -> {
-                Log.i("loadState", "loadState : ${usersLazyPagingItems.loadState}")
+
                 Text(text = "No more users")
             }
         }

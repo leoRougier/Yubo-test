@@ -15,6 +15,7 @@ data class CompleteUserProfileEntity(
 
 fun CompleteUserProfileEntity.toUserProfile(): UserProfile {
     return UserProfile(
+        localId = user.id,
         uid = user.uid,
         name = user.name,
         age = user.age,

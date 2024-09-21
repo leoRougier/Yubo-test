@@ -38,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,11 +65,11 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import androidx.paging.ItemSnapshotList
 import coil.compose.AsyncImage
 import com.example.swipeproject.R
 import com.example.swipeproject.model.DragState
 import com.example.swipeproject.model.UserProfile
+import com.example.swipeproject.utils.DragDropController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -79,32 +80,34 @@ import kotlin.math.roundToInt
 
 @Composable
 fun DragDropStack(
-    userProfiles: ItemSnapshotList<UserProfile>,
+    userProfiles: List<UserProfile>,
     onDropLeft: (String?) -> Unit,
     onDropRight: (String?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Log.i("userProfiles", userProfiles.size.toString())
 
-    // Shared drag state
     val dragState = remember { DragState() }
 
     Box(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        userProfiles.reversed().forEachIndexed { index, userProfile ->
+        userProfiles.take(3).reversed().forEachIndexed { index, userProfile ->
             userProfile?.let { profile ->
-                DragDropCard(
-                    onDropLeft = { onDropLeft(profile.uid) },
-                    onDropRight = { onDropRight(profile.uid) },
-                    onDragStateChanged = { dragging, direction, progress ->
-                        dragState.update(dragging, direction, progress)
+                key(userProfile.uid) {
+                    DragDropCard(
+                        isTop = index == userProfiles.takeLast(3).size - 1,
+                        onDropLeft = { onDropLeft(profile.uid) },
+                        onDropRight = { onDropRight(profile.uid) },
+                        onDragStateChanged = { dragging, direction, progress ->
+                            dragState.update(dragging, direction, progress)
+                        }
+                    ) {
+                        Log.i("index user", "index : $index")
+                        Log.i("index user", "name : ${profile.name}")
+                        UserProfile(profile)
                     }
-                ) {
-                    Log.i("index user", "index : $index")
-                    Log.i("index user", "name : ${profile.name}")
-                    UserProfile(profile, false)
                 }
             }
         }
@@ -140,174 +143,69 @@ fun AnimatedButton(dragState: DragState) {
 
 @Composable
 fun DragDropCard(
+    isTop: Boolean,
     onDropLeft: () -> Unit,
     onDropRight: () -> Unit,
     onDragStateChanged: (dragging: Boolean, direction: Int?, progress: Float) -> Unit,
     content: @Composable () -> Unit
 ) {
-    val offset = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
-    val rotationAngle = remember { Animatable(0f) }
-    val maxTiltAngle = 15f
-
-    val thresholdPercentage = 0.40f
-    var threshold by remember { mutableFloatStateOf(0f) }
-
-    var cardSize by remember { mutableStateOf(IntSize.Zero) }
-
-    // Internal drag state
-    val isDraggingInternal = remember { mutableStateOf(false) }
-    val dragDirectionInternal = remember { mutableStateOf<Int?>(null) }
-    val dragProgressInternal = remember { mutableFloatStateOf(0f) }
-
-    // Update threshold when the card size changes
-    val onCardSizeChanged: (IntSize) -> Unit = { size ->
-        cardSize = size
-        threshold = size.width * thresholdPercentage
-    }
-
-    // Update rotation angle based on horizontal offset
-    suspend fun updateRotationAngle() {
-        val angle = ((offset.value.x / (cardSize.width / 2).coerceAtLeast(1)) * maxTiltAngle)
-            .coerceIn(-maxTiltAngle, maxTiltAngle)
-        rotationAngle.snapTo(angle)
-    }
-
-    suspend fun handleDragEnd(scope: CoroutineScope) {
-        isDraggingInternal.value = false
-        val horizontalDistance = abs(offset.value.x)
-        if (horizontalDistance > threshold) {
-            // Calculate target offset to animate card off-screen
-            val maxDimension = max(cardSize.width.toFloat(), cardSize.height.toFloat())
-            val normalizedOffset = offset.value / offset.value.getDistance()
-            val targetOffset = normalizedOffset * (maxDimension * 2)
-
-            // Animate the card off-screen
-            scope.launch {
-                offset.animateTo(
-                    targetValue = offset.value + targetOffset,
-                    animationSpec = tween(durationMillis = 300)
-                )
-            }
-            // Continue rotation as card moves off-screen
-            scope.launch {
-                val targetRotation = (rotationAngle.value / maxTiltAngle) * 45f // Rotate up to 45 degrees
-                rotationAngle.animateTo(
-                    targetValue = targetRotation,
-                    animationSpec = tween(durationMillis = 300)
-                )
-            }
-
-            // Trigger callback based on drag direction
-            if (offset.value.x > 0) {
-                onDropRight()
-            } else {
-                onDropLeft()
-            }
-        } else {
-            // Animate back to original position with a spring animation
-            scope.launch {
-                offset.animateTo(
-                    targetValue = Offset.Zero,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow
-                    )
-                )
-            }
-            // Animate rotation angle back to zero
-            scope.launch {
-                rotationAngle.animateTo(
-                    targetValue = 0f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow
-                    )
-                )
-            }
+    if (!isTop) {
+        // Render non-interactive cards without drag gestures
+        Box(modifier = Modifier.fillMaxSize()) {
+            content()
         }
-
-        // Notify DragDropStack about the drag end
-        onDragStateChanged(isDraggingInternal.value, dragDirectionInternal.value, dragProgressInternal.floatValue)
+        return
     }
 
-    // Handle drag gesture
-    suspend fun handleDrag(change: PointerInputChange, dragAmount: Offset) {
-        isDraggingInternal.value = true
-        offset.snapTo(offset.value + dragAmount)
-        updateRotationAngle()
-
-        // Update drag direction
-        dragDirectionInternal.value = when {
-            offset.value.x > 0 -> 1
-            offset.value.x < 0 -> -1
-            else -> null
-        }
-
-        // Update drag progress
-        dragProgressInternal.floatValue = (abs(offset.value.x) / threshold).coerceIn(0f, 1f)
-
-        // Notify DragDropStack about the drag progress
-        onDragStateChanged(isDraggingInternal.value, dragDirectionInternal.value, dragProgressInternal.floatValue)
-
-        change.consumeAllChanges()
+    // Initialize the DragDropController
+    val controller = remember {
+        DragDropController(
+            onDropLeft = onDropLeft,
+            onDropRight = onDropRight,
+            onDragStateChanged = onDragStateChanged
+        )
     }
 
-    suspend fun handleDragCancel(scope: CoroutineScope) {
-        isDraggingInternal.value = false
-        dragDirectionInternal.value = null
-        dragProgressInternal.floatValue = 0f
-        // Animate back to original position with a spring animation
-        scope.launch {
-            offset.animateTo(
-                targetValue = Offset.Zero,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            )
-        }
-        // Animate rotation angle back to zero
-        scope.launch {
-            rotationAngle.animateTo(
-                targetValue = 0f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            )
-        }
-
-        // Notify DragDropStack about the drag cancel
-        onDragStateChanged(isDraggingInternal.value, dragDirectionInternal.value, dragProgressInternal.floatValue)
-    }
+    // Provide a CoroutineScope to the controller
+    val coroutineScope = rememberCoroutineScope()
+    controller.scope = coroutineScope
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .onSizeChanged(onCardSizeChanged)
+            .onSizeChanged { size ->
+                controller.onCardSizeChanged(size)
+            }
             .offset {
                 IntOffset(
-                    offset.value.x.roundToInt(),
-                    offset.value.y.roundToInt()
+                    controller.offset.value.x.roundToInt(),
+                    controller.offset.value.y.roundToInt()
                 )
             }
             .graphicsLayer {
-                rotationZ = rotationAngle.value
+                rotationZ = controller.rotationAngle.value
             }
             .pointerInput(Unit) {
-                coroutineScope {
-                    detectDragGestures(
-                        onDrag = { change, dragAmount ->
-                            launch { handleDrag( change, dragAmount) }
-                        },
-                        onDragEnd = {
-                            launch { handleDragEnd(this) }
-                        },
-                        onDragCancel = {
-                            launch { handleDragCancel(this) }
+                detectDragGestures(
+                    onDragStart = {
+                        // Optionally handle drag start
+                    },
+                    onDrag = { change, dragAmount ->
+                        coroutineScope.launch {
+                            controller.handleDrag(change, dragAmount)
                         }
-                    )
-                }
+                    },
+                    onDragEnd = {
+                        coroutineScope.launch {
+                            controller.handleDragEnd()
+                        }
+                    },
+                    onDragCancel = {
+                        coroutineScope.launch {
+                            controller.handleDragCancel()
+                        }
+                    }
+                )
             }
     ) {
         content()
@@ -320,7 +218,7 @@ val customFontFamily = FontFamily(
 )
 
 @Composable
-fun UserProfile(userProfile: UserProfile, test: Boolean) {
+fun UserProfile(userProfile: UserProfile) {
     val pagerState = rememberPagerState(pageCount = { userProfile.profilePhoto.size })
     val coroutineScope = rememberCoroutineScope()
     val isLastPage by remember {
@@ -337,15 +235,13 @@ fun UserProfile(userProfile: UserProfile, test: Boolean) {
             modifier = Modifier.fillMaxSize(),
             userScrollEnabled = false,
         ) { page ->
-            if(test){
-                AsyncImage(
-                    model = userProfile.profilePhoto[page],
-                    contentDescription = "Profile Photo ${page + 1}",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxSize()
-                )
-            }
+            AsyncImage(
+                model = userProfile.profilePhoto[page],
+                contentDescription = "Profile Photo ${page + 1}",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+            )
         }
 
         if (isLastPage) {

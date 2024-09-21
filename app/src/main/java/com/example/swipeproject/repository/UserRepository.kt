@@ -13,4 +13,5 @@ interface UserRepository {
     suspend fun removeUser(uid: String)
     suspend fun refreshUser()
     suspend fun getUserCount(): Int
+    suspend fun getUserProfilesFrom(lastFetchedId: Int, pageSize: Int): List<UserProfile>
 }

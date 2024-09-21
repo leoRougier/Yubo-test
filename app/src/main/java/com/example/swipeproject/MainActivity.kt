@@ -7,9 +7,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.paging.compose.collectAsLazyPagingItems
 import com.example.swipeproject.ui.swipe.DragDropScreen
 import com.example.swipeproject.ui.swipe.SwipeScreenEvent
 import com.example.swipeproject.ui.swipe.SwipeViewModel
@@ -26,9 +26,9 @@ class MainActivity : ComponentActivity() {
             SwipeProjectTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     val viewModel = hiltViewModel<SwipeViewModel>()
-                    val usersLazyPagingItems = viewModel.usersFlow.collectAsLazyPagingItems()
-
-                    DragDropScreen(usersLazyPagingItems ) { event ->
+                    //val usersLazyPagingItems = viewModel.usersFlow.collectAsLazyPagingItems()
+                    val state = viewModel.userStack.collectAsState()
+                    DragDropScreen(state ) { event ->
                         when(event){
                             is SwipeScreenEvent.OnSwipe -> {
                                 viewModel.removeUser(event.uid)

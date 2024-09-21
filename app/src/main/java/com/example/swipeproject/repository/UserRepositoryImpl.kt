@@ -26,6 +26,8 @@ class UserRepositoryImpl @Inject constructor(
 ) : UserRepository {
 
     override suspend fun getUserCount() = userDao.getUserCount()
+    override suspend fun getUserProfilesFrom(lastFetchedId: Int, pageSize: Int): List<UserProfile> =
+        userDao.getUsersFrom(lastFetchedId, pageSize).map { it.toUserProfile() }
 
     override suspend fun likeUser(uid: String): ResultStatus {
         Log.i("likeUser", "uid $uid ")
@@ -73,8 +75,10 @@ class UserRepositoryImpl @Inject constructor(
     override suspend fun refreshUser() {
         userDao.observeUserCount()
             .collect { count ->
-                if (count == 5) {
-                    fetchUsers()
+                if (count == 19) {
+                    repeat(3){
+                        fetchUsers()
+                    }
                 }
             }
     }
