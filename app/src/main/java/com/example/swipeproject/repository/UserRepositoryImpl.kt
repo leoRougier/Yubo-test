@@ -1,10 +1,6 @@
 package com.example.swipeproject.repository
 
 import android.util.Log
-import androidx.paging.Pager
-import androidx.paging.PagingConfig
-import androidx.paging.PagingData
-import androidx.paging.map
 import com.example.swipeproject.model.ResultStatus
 import com.example.swipeproject.model.UserActionRequest
 import com.example.swipeproject.model.UserProfile
@@ -14,8 +10,6 @@ import com.example.swipeproject.model.entity.toUserEntity
 import com.example.swipeproject.model.entity.toUserProfile
 import com.example.swipeproject.service.SwipeApiService
 import com.example.swipeproject.storage.database.dao.UserDao
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -25,18 +19,18 @@ class UserRepositoryImpl @Inject constructor(
     private val userDao: UserDao
 ) : UserRepository {
 
-    override suspend fun getUserCount() = userDao.getUserCount()
+    private val PAGE_COUNT = 3
+    private val REFETCH_THRESHOLD = 19
+
     override suspend fun getUserProfilesFrom(lastFetchedId: Int, pageSize: Int): List<UserProfile> =
         userDao.getUsersFrom(lastFetchedId, pageSize).map { it.toUserProfile() }
 
     override suspend fun likeUser(uid: String): ResultStatus {
-        Log.i("likeUser", "uid $uid ")
         val request = UserActionRequest(uid)
         val response = apiService.likeUser(request)
         return if (response.isSuccessful) {
             response.body()?.result ?: ResultStatus.ERROR
         } else {
-            Log.i("likeUser", "ERROR")
             ResultStatus.ERROR
         }
     }
@@ -75,36 +69,18 @@ class UserRepositoryImpl @Inject constructor(
     override suspend fun refreshUser() {
         userDao.observeUserCount()
             .collect { count ->
-                if (count == 19) {
-                    repeat(3){
+                if (count == REFETCH_THRESHOLD) {
+                    repeat(PAGE_COUNT) {
                         fetchUsers()
                     }
                 }
             }
     }
 
-    override fun getPagedUsers(): Flow<PagingData<UserProfile>> {
-        return Pager(
-            config = PagingConfig(
-                pageSize = 10,
-                enablePlaceholders = false,
-                prefetchDistance = 5
-            ),
-            pagingSourceFactory = { userDao.getUsersPaged() }
-        ).flow.map { pagingData ->
-            pagingData.map { completeUserProfile ->
-                completeUserProfile.toUserProfile()
-            }
-        }
-    }
-
     override suspend fun removeUser(uid: String) {
         try {
-            Log.d("UserRepository", "Attempting to remove user: $uid")
             userDao.deleteUserByUid(uid)
             userDao.deletePhotosByUserId(uid)
-
-            Log.d("UserRepository", "Successfully removed user: $uid")
         } catch (e: Exception) {
             Log.e("UserRepository", "Error removing user: ${e.message}")
         }

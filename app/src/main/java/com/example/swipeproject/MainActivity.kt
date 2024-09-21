@@ -25,14 +25,12 @@ class MainActivity : ComponentActivity() {
         setContent {
             SwipeProjectTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+
                     val viewModel = hiltViewModel<SwipeViewModel>()
-                    //val usersLazyPagingItems = viewModel.usersFlow.collectAsLazyPagingItems()
                     val state = viewModel.userStack.collectAsState()
+
                     DragDropScreen(state ) { event ->
                         when(event){
-                            is SwipeScreenEvent.OnSwipe -> {
-                                viewModel.removeUser(event.uid)
-                            }
                             is SwipeScreenEvent.DisLike -> viewModel.disLike(event.uid)
                             is SwipeScreenEvent.Like -> viewModel.like(event.uid)
                         }

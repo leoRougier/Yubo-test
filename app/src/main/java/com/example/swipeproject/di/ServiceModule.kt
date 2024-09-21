@@ -14,6 +14,6 @@ object ServiceModule {
 
     @Singleton
     @Provides
-    fun providesYavinApiService(retrofit: Retrofit): SwipeApiService =
+    fun providesSwipeApiService(retrofit: Retrofit): SwipeApiService =
         retrofit.create(SwipeApiService::class.java)
 }

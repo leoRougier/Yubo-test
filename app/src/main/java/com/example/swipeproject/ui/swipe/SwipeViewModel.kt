@@ -1,6 +1,5 @@
 package com.example.swipeproject.ui.swipe
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.swipeproject.model.UserProfile
@@ -25,8 +24,7 @@ class SwipeViewModel @Inject constructor(private val userRepository: UserReposit
     private var lastFetchedId: Int = 0
     private var isFetching = false
 
-    // Using SnapshotStateList for mutable and observable list
-    private val _userStack  = MutableStateFlow(SwipeUserScreenState(emptyList()))
+    private val _userStack = MutableStateFlow(SwipeUserScreenState())
     val userStack: StateFlow<SwipeUserScreenState> = _userStack
 
     init {
@@ -51,14 +49,16 @@ class SwipeViewModel @Inject constructor(private val userRepository: UserReposit
                         }
                     }
                 } else {
-                    // Fetch from API if DB is low
+                    _userStack.update { currentState ->
+                        currentState.copy(isLoading = true)
+                    }
                     userRepository.fetchUsers()
                     val fetchedUsers = userRepository.getUserProfilesFrom(lastFetchedId, PAGE_SIZE)
                     if (fetchedUsers.isNotEmpty()) {
                         lastFetchedId = extractLastId(fetchedUsers)
                         withContext(Dispatchers.Main) {
                             _userStack.update { currentState ->
-                                currentState.copy(userProfiles = currentState.userProfiles + newUsers)
+                                currentState.copy(userProfiles = fetchedUsers, isLoading = false)
                             }
                         }
                     }
@@ -76,9 +76,9 @@ class SwipeViewModel @Inject constructor(private val userRepository: UserReposit
     }
 
 
-    fun removeUser(uid: String?) {
+    private fun removeUser(uid: String?) {
         if (uid == null) return
-        if (_userStack.value.userProfiles.isNotEmpty()){
+        if (_userStack.value.userProfiles.isNotEmpty()) {
             viewModelScope.launch(Dispatchers.IO) {
                 userRepository.removeUser(uid)
                 _userStack.update { currentState ->
@@ -91,23 +91,24 @@ class SwipeViewModel @Inject constructor(private val userRepository: UserReposit
         }
     }
 
-    fun like(uid: String?){
-        Log.i("likeUser", "viewmodel $uid")
+    fun like(uid: String?) {
         if (uid == null) return
         viewModelScope.launch(Dispatchers.IO) {
             removeUser(uid)
-            //userRepository.likeUser(uid)
+            userRepository.likeUser(uid)
         }
     }
 
-    fun disLike(uid: String?){
+    fun disLike(uid: String?) {
         if (uid == null) return
         viewModelScope.launch(Dispatchers.IO) {
             removeUser(uid)
-            //userRepository.dislikeUser(uid)
+            userRepository.dislikeUser(uid)
         }
     }
 }
+
 data class SwipeUserScreenState(
-    val userProfiles: List<UserProfile>
+    val isLoading: Boolean = false,
+    val userProfiles: List<UserProfile> = emptyList()
 )
