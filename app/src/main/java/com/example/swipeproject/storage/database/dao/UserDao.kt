@@ -1,27 +1,36 @@
 package com.example.swipeproject.storage.database.dao
 
-import androidx.room.*
-import com.example.swipeproject.model.entity.CompleteUserProfile
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import com.example.swipeproject.model.entity.CompleteUserProfileEntity
 import com.example.swipeproject.model.entity.PhotoEntity
 import com.example.swipeproject.model.entity.UserEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface UserDao {
 
-    // Insert a user
+    @Query("DELETE FROM users WHERE uid = :uid")
+    suspend fun deleteUserByUid(uid: String)
+
+    @Query("DELETE FROM photos WHERE userId = :userIds")
+    suspend fun deletePhotosByUserId(userIds: String)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertUser(user: UserEntity)
+    suspend fun insertUsers(users: List<UserEntity>): List<Long>
 
-    // Insert a photo
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertPhoto(photo: PhotoEntity)
+    suspend fun insertPhotos(photos: List<PhotoEntity>)
 
-    // Get a user along with their photos and emojis
-    @Transaction
-    @Query("SELECT * FROM users WHERE uid = :userId")
-    suspend fun getCompleteUserProfile(userId: String): CompleteUserProfile?
+    @Query("SELECT COUNT(*) FROM users")
+    fun observeUserCount(): Flow<Int>
 
-    // Delete a user (cascades to delete associated photos and emojis)
-    @Delete
-    suspend fun deleteUser(user: UserEntity)
+    @Query("SELECT COUNT(*) FROM users")
+    suspend fun getUserCount(): Int
+
+    @Query("SELECT * FROM users WHERE id > :id ORDER BY id ASC LIMIT :limit")
+    suspend fun getUsersFrom(id: Int, limit: Int): List<CompleteUserProfileEntity>
 }
+
